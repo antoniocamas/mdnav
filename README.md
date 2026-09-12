@@ -30,6 +30,10 @@ stylesheet, pandoc arguments, and the auto-rerender default.
   deletes its staging directory and exits by itself.
 - GitHub-style CSS, syntax highlighting, offline MathML math — pandoc's
   standalone HTML pipeline.
+- **Inline Mermaid diagrams.** ` ```mermaid ` fenced code blocks render
+  as live diagrams in the preview, via a vendored `mermaid.js` loaded
+  only on pages that use it. `mdnav-export-file` inlines it too, so the
+  exported HTML stays self-contained.
 
 ## Security model
 

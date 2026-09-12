@@ -22,6 +22,11 @@ author's `markdown_plan.md`, phase 2).
   only — never add pip dependencies.
 - `github-markdown.css` — stylesheet shipped with the package; linked
   from every rendered page, inlined by the export command.
+- `mermaid.min.js` — vendored mermaid UMD build; served only to pages
+  containing a ```` ```mermaid ```` fenced code block, inlined by the
+  export command under the same condition. Update by re-downloading
+  the pinned version from jsdelivr (`mermaid@<version>/dist/mermaid.min.js`)
+  — never add it as a pip/npm dependency.
 
 ## Protocol between the two sides
 
@@ -34,7 +39,8 @@ author's `markdown_plan.md`, phase 2).
 - URL scheme: `http://127.0.0.1:PORT/TOKEN/<path-under-$HOME>`.
   `.md`/`.markdown` render on demand; everything else is served
   statically; `__mdnav__` directly after the token is reserved
-  (`events` = SSE, `github-markdown.css` = stylesheet).
+  (`events` = SSE, `github-markdown.css` = stylesheet,
+  `mermaid.min.js` = diagram renderer).
 - Live reload: the buffer-local `after-save-hook` renders a staged copy
   into the session's staging subtree — the browser never fetches it;
   its appearance in the watched subtree is only the change signal that
@@ -71,7 +77,8 @@ emacs -Q --batch -L . --eval '(byte-compile-file "mdnav.el")'
 
 # Standalone server smoke: fixed port/token, then probe
 python3 mdnav-server.py --port 45671 --token 0123456789abcdef0123456789abcdef \
-  --staging ~/tmp-markdown/mdnav-selftest --css github-markdown.css --parent-pid $$ \
+  --staging ~/tmp-markdown/mdnav-selftest --css github-markdown.css \
+  --mermaid-js mermaid.min.js --parent-pid $$ \
   --pandoc-arg=-f --pandoc-arg=markdown+tex_math_dollars+emoji \
   --pandoc-arg=-t --pandoc-arg=html5 --pandoc-arg=-s \
   --pandoc-arg=--highlight-style --pandoc-arg=tango --pandoc-arg=--mathml

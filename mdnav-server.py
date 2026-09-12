@@ -140,6 +140,11 @@ def render_markdown(source, pandoc_args, token):
         "e.onmessage=function(){location.reload()};}})();\n"
         "</script>\n"
     )
+    if '<pre class="mermaid">' in html:
+        script += (
+            f'<script src="/{token}/__mdnav__/mermaid.min.js"></script>\n'
+            "<script>mermaid.initialize({startOnLoad:true});</script>\n"
+        )
     if "</body>" in html:
         html = html.replace("</body>", script + "</body>", 1)
     else:
@@ -155,6 +160,7 @@ class Config:
         self.token = b""  # bytes; compared with hmac.compare_digest
         self.pandoc_args = []
         self.css_path = ""
+        self.mermaid_js_path = ""
 
 
 CONFIG = Config()
@@ -204,6 +210,10 @@ class Handler(BaseHTTPRequestHandler):
             self._stream_events()
         elif rest == "__mdnav__/github-markdown.css":
             self._serve_file(CONFIG.css_path, "text/css; charset=utf-8")
+        elif rest == "__mdnav__/mermaid.min.js":
+            self._serve_file(
+                CONFIG.mermaid_js_path, "text/javascript; charset=utf-8"
+            )
         else:
             self._serve_mirror(rest)
 
@@ -293,6 +303,7 @@ def main():
     parser.add_argument("--token", required=True)
     parser.add_argument("--staging", required=True)
     parser.add_argument("--css", required=True)
+    parser.add_argument("--mermaid-js", required=True)
     parser.add_argument("--parent-pid", type=int, default=None)
     parser.add_argument("--pandoc-arg", action="append", default=[],
                         help="pandoc argument, repeatable")
@@ -312,6 +323,7 @@ def main():
     CONFIG.token = args.token.encode("ascii")
     CONFIG.pandoc_args = args.pandoc_arg
     CONFIG.css_path = os.path.realpath(args.css)
+    CONFIG.mermaid_js_path = os.path.realpath(args.mermaid_js)
 
     signal.signal(signal.SIGTERM, lambda *_: sys.exit(0))
 

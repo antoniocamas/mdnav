@@ -3,7 +3,7 @@
 ;; Copyright (C) 2026 Antonio Camas Maestre
 
 ;; Author: Antonio Camas Maestre <antoniocamas@hotmail.com>
-;; Version: 0.1.0
+;; Version: 0.2.0
 ;; Package-Requires: ((emacs "28.1"))
 ;; Keywords: docs, tools, processes
 ;; URL: https://github.com/antoniocamas/mdnav
@@ -147,6 +147,16 @@ this package."
   :type 'file
   :group 'mdnav)
 
+(defcustom mdnav-mermaid-js
+  (expand-file-name "mermaid.min.js" mdnav--directory)
+  "Vendored mermaid.js used to render ```mermaid fenced code blocks.
+Loaded client-side only on pages that contain a mermaid diagram.
+`mdnav-export-file' inlines it into the exported HTML; the server
+serves it at a reserved URL.  Defaults to the copy shipped with
+this package."
+  :type 'file
+  :group 'mdnav)
+
 (defcustom mdnav-pandoc-args
   (list "-f" "markdown+tex_math_dollars+emoji"
         "-t" "html5" "-s"
@@ -273,6 +283,26 @@ Return non-nil when pandoc succeeded; diagnostics land in
     (zerop (apply #'call-process
                   "pandoc" nil mdnav--pandoc-buffer nil args))))
 
+(defun mdnav--inline-mermaid (html-file)
+  "Inline `mdnav-mermaid-js' into HTML-FILE when it has a mermaid diagram.
+Only touched when a `<pre class=\"mermaid\">' block is present, so
+plain documents stay untouched.  Used by `mdnav-export-file',
+whose output has no server to fetch the script from."
+  (with-temp-buffer
+    (insert-file-contents html-file)
+    (goto-char (point-min))
+    (when (search-forward "<pre class=\"mermaid\">" nil t)
+      (goto-char (point-max))
+      (when (search-backward "</body>" nil t)
+        (goto-char (match-beginning 0))
+        (insert "<script>\n"
+                (with-temp-buffer
+                  (insert-file-contents mdnav-mermaid-js)
+                  (buffer-string))
+                "\n</script>\n"
+                "<script>mermaid.initialize({startOnLoad:true});</script>\n"))
+      (write-region (point-min) (point-max) html-file))))
+
 (defun mdnav--stamp-body-class (html-file)
   "Add the `markdown-body' class to the <body> tag of HTML-FILE in place.
 The GitHub CSS is scoped to `.markdown-body', but pandoc 3.1's
@@ -345,6 +375,7 @@ argparse rejects option-looking values after a separate flag."
          "--token" token
          "--staging" staging
          "--css" (expand-file-name mdnav-css)
+         "--mermaid-js" (expand-file-name mdnav-mermaid-js)
          "--parent-pid" (number-to-string (emacs-pid)))
    (mapcar (lambda (arg) (concat "--pandoc-arg=" arg))
            mdnav-pandoc-args)))
@@ -486,6 +517,7 @@ preview fallback when no server is wanted."
     (if (mdnav--run-pandoc input html 'embed)
         (progn
           (mdnav--stamp-body-class html)
+          (mdnav--inline-mermaid html)
           (browse-url (browse-url-file-url html))
           html)
       (pop-to-buffer mdnav--pandoc-buffer)
