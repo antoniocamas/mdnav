@@ -134,10 +134,21 @@ def render_markdown(source, pandoc_args, token):
     # Scope the GitHub CSS to the body (pandoc 3.1 has no body-class
     # template variable yet).
     html = re.sub(r"<body\b", '<body class="markdown-body">', html, count=1)
+    # Pandoc always wraps fenced code blocks in <code>, even for a
+    # language (mermaid) it applies no syntax highlighting to.
+    # Mermaid's client-side auto-render reads the block's innerHTML, so
+    # a nested <code> tag becomes part of the "diagram source" and
+    # breaks diagram-type detection -- strip it for mermaid blocks only.
+    html = re.sub(
+        r'<pre class="mermaid"><code>(.*?)</code></pre>',
+        r'<pre class="mermaid">\1</pre>',
+        html,
+        flags=re.S,
+    )
     script = (
         "<script>\n"
         f"(function(){{var e=new EventSource('/{token}/__mdnav__/events');"
-        "e.onmessage=function(){location.reload()};}})();\n"
+        "e.onmessage=function(){location.reload()};})();\n"
         "</script>\n"
     )
     if '<pre class="mermaid">' in html:

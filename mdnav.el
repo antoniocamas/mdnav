@@ -3,7 +3,7 @@
 ;; Copyright (C) 2026 Antonio Camas Maestre
 
 ;; Author: Antonio Camas Maestre <antoniocamas@hotmail.com>
-;; Version: 0.3.0
+;; Version: 0.3.1
 ;; Package-Requires: ((emacs "28.1"))
 ;; Keywords: docs, tools, processes
 ;; URL: https://github.com/antoniocamas/mdnav
@@ -283,6 +283,22 @@ Return non-nil when pandoc succeeded; diagnostics land in
     (zerop (apply #'call-process
                   "pandoc" nil mdnav--pandoc-buffer nil args))))
 
+(defun mdnav--unwrap-mermaid-code (html-file)
+  "Strip pandoc's <code> wrapper from `<pre class=\"mermaid\">' blocks.
+Mermaid's client-side auto-render reads a matching element's raw
+`innerHTML'; pandoc always wraps fenced code blocks in <code>, even
+for a language (mermaid) it applies no syntax highlighting to, so
+that nested tag becomes part of the \"diagram source\" and breaks
+diagram-type detection."
+  (with-temp-buffer
+    (insert-file-contents html-file)
+    (goto-char (point-min))
+    (while (re-search-forward
+            "<pre class=\"mermaid\"><code>\\(\\(?:.\\|\n\\)*?\\)</code></pre>"
+            nil t)
+      (replace-match "<pre class=\"mermaid\">\\1</pre>" t nil))
+    (write-region (point-min) (point-max) html-file)))
+
 (defun mdnav--inline-mermaid (html-file)
   "Inline `mdnav-mermaid-js' into HTML-FILE when it has a mermaid diagram.
 Only touched when a `<pre class=\"mermaid\">' block is present, so
@@ -533,6 +549,7 @@ preview fallback when no server is wanted."
     (if (mdnav--run-pandoc input html 'embed)
         (progn
           (mdnav--stamp-body-class html)
+          (mdnav--unwrap-mermaid-code html)
           (mdnav--inline-mermaid html)
           (browse-url (browse-url-file-url html))
           html)
