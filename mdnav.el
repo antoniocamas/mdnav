@@ -3,7 +3,7 @@
 ;; Copyright (C) 2026 Antonio Camas Maestre
 
 ;; Author: Antonio Camas Maestre <antoniocamas@hotmail.com>
-;; Version: 0.2.0
+;; Version: 0.3.0
 ;; Package-Requires: ((emacs "28.1"))
 ;; Keywords: docs, tools, processes
 ;; URL: https://github.com/antoniocamas/mdnav
@@ -490,6 +490,22 @@ after each save of this buffer."
   (browse-url (mdnav--buffer-url))
   (when mdnav-auto-rerender
     (add-hook 'after-save-hook #'mdnav--render-on-save nil t)))
+
+;;;###autoload
+(defun mdnav-restart ()
+  "Stop the preview server and start a fresh one.
+Use this after updating mdnav (e.g. `package-vc-upgrade') to pick up
+code changes without restarting Emacs -- the running server is a
+separate process holding the old code in memory, so simply reloading
+`mdnav.el' does not affect it.  The new server gets a new random port
+and token, so open preview tabs are left pointing at a dead URL;
+re-run `mdnav' in each buffer you want to keep previewing."
+  (interactive)
+  (mdnav--check-external-deps)
+  (when (process-live-p mdnav--server-process)
+    (mdnav--shutdown))
+  (mdnav--ensure-server)
+  (message "mdnav: server restarted"))
 
 ;;;###autoload
 (defun mdnav-stop ()

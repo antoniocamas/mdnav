@@ -10,6 +10,7 @@ HTTP server.
 |---|---|---|
 | `M-x mdnav` | `C-c C-c v` / `C-c C-v` | Preview the current buffer in your browser. First call starts the server. |
 | `M-x mdnav-stop` | `C-c C-u` | Stop auto-reloading this buffer's preview on save (server keeps running). |
+| `M-x mdnav-restart` | — | Stop the running server and start a fresh one (e.g. after updating mdnav). Open preview tabs go stale; re-run `mdnav` in each buffer. |
 | `M-x mdnav-export-file` | — | Write one self-contained HTML file (CSS and images inlined) under `~/tmp-markdown/` and open it. |
 
 Configuration lives in the `mdnav` customize group: staging root,
@@ -88,6 +89,11 @@ the missing package.
 
 ## Troubleshooting
 
+- **Updated mdnav but new features aren't showing up.** The server is a
+  long-running child process holding the old code in memory; updating
+  the files on disk (e.g. `package-vc-upgrade`) doesn't affect it. Run
+  `M-x mdnav-restart`, then `M-x mdnav` again in the buffer you want to
+  preview.
 - **The preview tab stopped reloading.** The server may have died; run
   `M-x mdnav` again — it cold-starts a fresh server, port and token.
   Tabs holding the old URL need one manual refresh after that.
